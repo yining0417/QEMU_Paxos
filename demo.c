@@ -1,4 +1,3 @@
-//#include <iostream>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -8,6 +7,8 @@
 #include <netinet/if_ether.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
+#include <sys/socket.h>
+#include <errno.h>
 
 //using namespace std;
 #define MAXMSG 65535
@@ -29,6 +30,7 @@ int tcp_fin(struct tcphdr* tcp_header);
 int tcp_ack(struct tcphdr* tcp_header);
 int tcp_src_port(struct tcphdr* tcp_header);
 int tcp_dst_port(struct tcphdr* tcp_header);
+void send_msg(char* data,int size);
 
 int main() {
 	int num;
@@ -108,6 +110,7 @@ int msg_handle(uint8_t* msg,int size) {
 			real_data = (char*)(msg+all_header_size);
 
 			//todo, forward to backup
+			send_msg(real_data,size - all_header_size);
 			printf("%s\n",real_data);
 		}
 	}
@@ -125,6 +128,42 @@ msg_handle_exit:
 	return ret;
 
 }
+
+void send_msg(char* data,int size) {
+	int    sockfd, n;
+    char    recvline[4096], sendline[4096];
+    struct sockaddr_in    servaddr;
+    const char* dst_addr = "127.0.0.1";
+
+    if( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+    printf("create socket error: %s(errno: %d)\n", strerror(errno),errno);
+    exit(0);
+    }
+
+    memset(&servaddr, 0, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_port = htons(6379);
+    if( inet_pton(AF_INET, dst_addr, &servaddr.sin_addr) <= 0){
+    printf("inet_pton error for");
+    exit(0);
+    }
+
+    if( connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0){
+    printf("connect error: %s(errno: %d)\n",strerror(errno),errno);
+    exit(0);
+    }
+
+    printf("send msg to server: \n");
+    if( write(sockfd, data, size) < 0)
+    {
+    printf("send msg error: %s(errno: %d)\n", strerror(errno), errno);
+    exit(0);
+    }
+
+    close(sockfd);
+}
+
+
 
 int ether_handle(struct ether_header* eth_header) {
 	int ret = 1;
