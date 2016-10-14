@@ -16,6 +16,8 @@
 #define MSG_OFF 10         //the offset of the whole message
 #define MSG_DBUG
 
+int sockfd;
+
 enum tcp_flag{INV,ACK,SYN,FIN};
 
 int msg_handle(uint8_t* msg,int size);
@@ -32,21 +34,25 @@ int tcp_src_port(struct tcphdr* tcp_header);
 int tcp_dst_port(struct tcphdr* tcp_header);
 void send_msg(char* data,int size);
 
+void conn_establish(int port);
+void conn_close();
+
 int main() {
 	int num;
-	scanf("%d",&num);
-	uint8_t str[MAXMSG];
-	struct ether_header *eth_header;  
-	struct ip* ip_header;
-	struct tcphdr* tcp_header;
+	while (scanf("%d",&num)) {
+		uint8_t str[MAXMSG];
+		struct ether_header *eth_header;  
+		struct ip* ip_header;
+		struct tcphdr* tcp_header;
 
-	int i;
-	for(i=0; i<num; i++) {
-		int input;
-		scanf("%d",&input);
-		str[i]=input;
-	}
+		int i;
+		for(i=0; i<num; i++) {
+			int input;
+			scanf("%d",&input);
+			str[i]=input;
+		}
 	msg_handle(str,num);
+}
 
 
 	return 0;
@@ -129,38 +135,40 @@ msg_handle_exit:
 
 }
 
-void send_msg(char* data,int size) {
-	int    sockfd, n;
-    char    recvline[4096], sendline[4096];
-    struct sockaddr_in    servaddr;
+void conn_establish(int port) {
+	struct sockaddr_in    servaddr;
     const char* dst_addr = "127.0.0.1";
 
     if( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
-    printf("create socket error: %s(errno: %d)\n", strerror(errno),errno);
-    exit(0);
+    	printf("create socket error: %s(errno: %d)\n", strerror(errno),errno);
+    	exit(0);
     }
 
     memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(6379);
+    servaddr.sin_port = htons(port);
     if( inet_pton(AF_INET, dst_addr, &servaddr.sin_addr) <= 0){
-    printf("inet_pton error for");
-    exit(0);
+    	printf("inet_pton error for");
+    	exit(0);
     }
 
     if( connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0){
-    printf("connect error: %s(errno: %d)\n",strerror(errno),errno);
-    exit(0);
+    	printf("connect error: %s(errno: %d)\n",strerror(errno),errno);
+    	exit(0);
     }
+}
 
-    printf("send msg to server: \n");
+void send_msg(char* data,int size) {
+
     if( write(sockfd, data, size) < 0)
     {
     printf("send msg error: %s(errno: %d)\n", strerror(errno), errno);
     exit(0);
     }
+}
 
-    close(sockfd);
+void conn_close() {
+	close(sockfd);
 }
 
 
@@ -246,6 +254,7 @@ enum tcp_flag tcp_handle(struct tcphdr* tcp_header) {
 		printf("TCP Connection Established Process\n");
 #endif
 		//todo, create a connection for backup
+		conn_establish(dst_port);
 		type = SYN;
 		goto tcp_handle_exit;
 	}
@@ -258,6 +267,7 @@ enum tcp_flag tcp_handle(struct tcphdr* tcp_header) {
 		printf("TCP Connection Closed Process\n");
 #endif
 		//todo, close the connection
+		conn_close();
 		type = FIN;
 		goto tcp_handle_exit;
 	}
