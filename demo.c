@@ -16,7 +16,7 @@
 #define MSG_OFF 10         //the offset of the whole message
 #define MSG_DBUG
 
-int sockfd;
+//int sockfd;
 
 enum tcp_flag{INV,ACK,SYN,FIN};
 
@@ -34,8 +34,8 @@ int tcp_src_port(struct tcphdr* tcp_header);
 int tcp_dst_port(struct tcphdr* tcp_header);
 void send_msg(char* data,int size);
 
-void conn_establish(int port);
-void conn_close();
+//void conn_establish(int port);
+//void conn_close();
 
 int main() {
 	int num;
@@ -184,6 +184,7 @@ int ether_handle(struct ether_header* eth_header) {
 
 		goto ether_handle_exit;
 	}
+/*	
 	ret=mac_matching(eth_header);
 	if(!ret) {
 
@@ -193,6 +194,7 @@ int ether_handle(struct ether_header* eth_header) {
 
 		goto ether_handle_exit;
 	}
+*/
 
 ether_handle_exit:
 	return ret;
@@ -254,7 +256,7 @@ enum tcp_flag tcp_handle(struct tcphdr* tcp_header) {
 		printf("TCP Connection Established Process\n");
 #endif
 		//todo, create a connection for backup
-		conn_establish(dst_port);
+		//conn_establish(dst_port);
 		type = SYN;
 		goto tcp_handle_exit;
 	}
@@ -267,7 +269,7 @@ enum tcp_flag tcp_handle(struct tcphdr* tcp_header) {
 		printf("TCP Connection Closed Process\n");
 #endif
 		//todo, close the connection
-		conn_close();
+		//conn_close();
 		type = FIN;
 		goto tcp_handle_exit;
 	}
